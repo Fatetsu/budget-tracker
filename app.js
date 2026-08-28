@@ -1,5 +1,5 @@
-const KEY="budgetTrackerV4";
-const old=JSON.parse(localStorage.getItem("budgetTrackerV3")||localStorage.getItem("budgetTrackerV2")||localStorage.getItem("budgetTrackerV1")||"null");
+const KEY="budgetTrackerV6";
+const old=JSON.parse(localStorage.getItem("budgetTrackerV5")||localStorage.getItem("budgetTrackerV4")||localStorage.getItem("budgetTrackerV3")||localStorage.getItem("budgetTrackerV2")||localStorage.getItem("budgetTrackerV1")||"null");
 let data=JSON.parse(localStorage.getItem(KEY)||"null")||{
  settings:{balance:0,defaultPay:0,frequency:"biweekly"},
  paychecks:[],bills:[],spending:[],debt:[],goals:[]
@@ -94,7 +94,13 @@ $("settingsBtn").addEventListener("click",(e)=>{
   loadSettings();
 });
 const savedTheme=localStorage.getItem("budgetTheme")||"light";
-function applyTheme(t){document.body.classList.toggle("dark",t==="dark");$("themeToggle").textContent=t==="dark"?"☀️":"🌙";localStorage.setItem("budgetTheme",t)}
+// Budget Tracker V6
+function applyTheme(t){
+  document.body.classList.toggle("dark",t==="dark");
+  document.documentElement.classList.toggle("dark",t==="dark");
+  $("themeToggle").textContent=t==="dark"?"☀️":"🌙";
+  localStorage.setItem("budgetTheme",t);
+}
 $("themeToggle").addEventListener("click",(e)=>{
   e.preventDefault(); e.stopPropagation();
   applyTheme(document.body.classList.contains("dark")?"light":"dark");
