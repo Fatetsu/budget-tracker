@@ -160,3 +160,46 @@ body.dark .assignedBills,body.dark .plannerLeft{border-color:#263750}
 .good{color:#20b26b!important}
 .bad{color:#ef4444!important}
 .neutral{color:var(--text)!important}
+
+/* V12 mobile layout cleanup */
+*{box-sizing:border-box}
+body{overflow-x:hidden}
+main{width:100%;max-width:100%;overflow-x:hidden}
+.screen{width:100%;max-width:100%;padding-left:16px;padding-right:16px;padding-bottom:110px}
+.screen > *{max-width:100%}
+.sectionHead{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.sectionHead > div:first-child{min-width:0}
+.planner{width:100%;overflow:hidden}
+.planner .sectionHead{align-items:flex-start;flex-wrap:nowrap}
+.planner .sectionHead > div:first-child{flex:1;min-width:0}
+.planner .sectionHead > div:first-child b{display:block;font-size:25px;line-height:1.15;margin-bottom:5px}
+.planner .sectionHead > div:first-child small{display:block;line-height:1.35;white-space:normal}
+.planner .sectionHead button{flex:0 0 auto}
+.assignedBills{width:100%}
+.miniRow{min-width:0}
+.miniRow span{min-width:0;overflow-wrap:anywhere}
+.plannerLeft{gap:16px}
+.plannerLeft span{min-width:0}
+.plannerLeft strong{white-space:nowrap}
+header{overflow:hidden}
+header h1{margin-bottom:5px}
+header .sub{line-height:1.35;white-space:normal}
+@media(max-width:600px){
+  .screen{padding-left:14px;padding-right:14px}
+  .statGrid{gap:10px}
+  .stat.card{padding:16px 14px}
+  .stat.card b{font-size:22px}
+  .planner{padding:14px}
+  .planner .sectionHead > div:first-child b{font-size:22px}
+  .planner .sectionHead button{padding:10px 14px}
+  .assignedBills{margin-top:10px}
+  .miniRow{font-size:15px;padding:8px 0}
+  .plannerLeft{font-size:15px}
+  .plannerLeft strong{font-size:20px}
+  nav{padding-left:6px;padding-right:6px}
+  nav button{min-width:0;padding-left:4px;padding-right:4px}
+}
+
+/* V13 negative balance carryover */
+.carryover{font-weight:600}
+.carryover span{color:var(--muted)}

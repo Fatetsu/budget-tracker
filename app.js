@@ -107,8 +107,14 @@ function assignedBillTotal(p){
 function assignedDebtTotal(p){
   return data.debt.reduce((a,d)=>a+Number(d.payment||0),0);
 }
+function paycheckCarryover(p){
+  // Only a negative current balance carries into the paycheck.
+  // A positive current balance stays separate so future paychecks are not
+  // incorrectly added to current money.
+  return Math.min(0, currentBalance());
+}
 function paycheckAvailable(p){
-  return Number(p.amount||0)-assignedBillTotal(p)-assignedDebtTotal(p)-Number(p.savings||0);
+  return Number(p.amount||0)+paycheckCarryover(p)-assignedBillTotal(p)-assignedDebtTotal(p)-Number(p.savings||0);
 }
 function currentBalance(){return Number(data.settings.balance||0)}
 function nextPay(){return paychecksSorted().find(p=>p.date>=today())}
@@ -152,15 +158,16 @@ function renderPaycheckSummary(){
     const idx=data.paychecks.indexOf(p);
     return `<div class="planner card">
       <div class="sectionHead">
-        <div><b>${money(p.amount)}</b><small>${esc(p.note||"Paycheck")} • ${fmt(p.date)} – ${fmt(paycheckEnd(p))}</small></div>
+        <div><b>${money(p.amount)}</b><small>${esc(p.note||"Paycheck")} &nbsp;•&nbsp; ${fmt(p.date)} – ${fmt(paycheckEnd(p))}</small></div>
         <button onclick="editItem('paychecks',${idx})">Edit</button>
       </div>
       ${bills.length?`<div class="assignedBills">${bills.map(b=>`<div class="miniRow"><span>🧾 ${esc(b.name)}</span><b>${money(b.amount)}</b></div>`).join("")}</div>`:`<div class="empty">No bills fall inside this 2-week period.</div>`}
       <div class="miniRow"><span>Paycheck</span><b>${money(p.amount)}</b></div>
+      ${paycheckCarryover(p)<0?`<div class="miniRow carryover"><span>Negative balance carried in</span><b class="bad">${money(paycheckCarryover(p))}</b></div>`:""}
       <div class="miniRow"><span>Bills</span><b class="bad">−${money(bt)}</b></div>
       ${dt?`<div class="miniRow"><span>Planned debt payments</span><b class="bad">−${money(dt)}</b></div>`:""}
       ${sav?`<div class="miniRow"><span>Savings</span><b class="good">−${money(sav)}</b></div>`:""}
-      <div class="plannerLeft"><span>Left from paycheck</span><strong class="${left>=0?"good":"bad"}">${money(left)}</strong></div>
+      <div class="plannerLeft"><span>Left from this paycheck</span><strong class="${left>=0?"good":"bad"}">${money(left)}</strong></div><div class="hint">${paycheckCarryover(p)<0?`Negative balance carried into this paycheck: ${money(paycheckCarryover(p))}.`:"Current balance is not negative, so no balance is carried into this paycheck."}</div>
     </div>`;
   }).join("");
 }
