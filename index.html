@@ -9,28 +9,100 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header><h1>Budget Tracker</h1><button id="reset" class="ghost">Reset</button></header>
+<header>
+  <div><h1>Budget Tracker</h1><small id="periodLabel">Paycheck planner</small></div>
+  <div class="headerActions">
+    <button id="themeToggle" class="ghost">🌙</button>
+    <button id="settingsBtn" class="ghost">⚙️</button>
+  </div>
+</header>
 
 <main>
 <section id="dashboard" class="screen active">
-  <div class="hero card"><span>Safe to spend</span><strong id="safe">$0.00</strong><small id="safeNote">Add a paycheck and bills to begin.</small></div>
+  <div class="hero card">
+    <span>Safe to spend until payday</span>
+    <strong id="safe">$0.00</strong>
+    <small id="safeNote">Set your current balance and next paycheck.</small>
+  </div>
   <div class="grid">
-    <div class="stat card"><span>Balance</span><b id="balance">$0.00</b></div>
-    <div class="stat card"><span>Next paycheck</span><b id="nextPay">$0.00</b></div>
-    <div class="stat card"><span>Bills</span><b id="billTotal">$0.00</b></div>
-    <div class="stat card"><span>Debt</span><b id="debtTotal">$0.00</b></div>
+    <div class="stat card"><span>Current balance</span><b id="balance">$0.00</b></div>
+    <div class="stat card"><span>Next paycheck</span><b id="nextPay">$0.00</b><small id="nextPayDate">—</small></div>
+    <div class="stat card"><span>Bills before payday</span><b id="billTotal">$0.00</b></div>
+    <div class="stat card"><span>Total debt</span><b id="debtTotal">$0.00</b></div>
   </div>
+
+  <div class="card">
+    <div class="sectionHead"><h2>This paycheck</h2><button onclick="openForm('paycheck')">+ Paycheck</button></div>
+    <div id="paycheckSummary"></div>
+  </div>
+
+  <div class="card">
+    <div class="sectionHead"><h2>Monthly spending</h2><span id="monthTotal" class="pill">$0</span></div>
+    <div id="chart"></div>
+  </div>
+
   <div class="card"><h2>Quick add</h2>
-    <div class="actions"><button onclick="openForm('paycheck')">+ Paycheck</button><button onclick="openForm('bill')">+ Bill</button><button onclick="openForm('spending')">+ Spending</button><button onclick="openForm('debt')">+ Debt</button></div>
+    <div class="actions">
+      <button onclick="openForm('spending')">+ Spending</button>
+      <button onclick="openForm('bill')">+ Bill</button>
+      <button onclick="openForm('debt')">+ Debt</button>
+      <button onclick="openForm('goal')">+ Goal</button>
+    </div>
   </div>
-  <div class="card"><h2>Recent spending</h2><div id="recent"></div></div>
+
+  <div class="card"><h2>Recent activity</h2><div id="recent"></div></div>
 </section>
 
-<section id="paychecks" class="screen"><div class="sectionHead"><h2>Paychecks</h2><button onclick="openForm('paycheck')">+ Add</button></div><div id="paycheckList"></div></section>
-<section id="bills" class="screen"><div class="sectionHead"><h2>Bills</h2><button onclick="openForm('bill')">+ Add</button></div><div id="billList"></div></section>
-<section id="spending" class="screen"><div class="sectionHead"><h2>Spending</h2><button onclick="openForm('spending')">+ Add</button></div><div id="spendingList"></div></section>
-<section id="debt" class="screen"><div class="sectionHead"><h2>Debt</h2><button onclick="openForm('debt')">+ Add</button></div><div id="debtList"></div></section>
-<section id="goals" class="screen"><div class="sectionHead"><h2>Savings goals</h2><button onclick="openForm('goal')">+ Add</button></div><div id="goalList"></div></section>
+<section id="paychecks" class="screen">
+  <div class="sectionHead"><h2>Paychecks</h2><button onclick="openForm('paycheck')">+ Add</button></div>
+  <div class="card info">Future paychecks are <b>never</b> included in your current balance. They appear here and in the paycheck planner until their date arrives.</div>
+  <div id="paycheckList"></div>
+</section>
+
+<section id="bills" class="screen">
+  <div class="sectionHead"><h2>Bills</h2><button onclick="openForm('bill')">+ Add</button></div>
+  <div class="card info">Recurring bills can generate their next due date automatically after you mark them paid.</div>
+  <div id="billList"></div>
+</section>
+
+<section id="spending" class="screen">
+  <div class="sectionHead"><h2>Spending</h2><button onclick="openForm('spending')">+ Add</button></div>
+  <div class="card"><div class="sectionHead"><b>Month total</b><b id="spendingMonthTotal">$0.00</b></div><div id="categoryBars"></div></div>
+  <div id="spendingList"></div>
+</section>
+
+<section id="debt" class="screen">
+  <div class="sectionHead"><h2>Debt</h2><button onclick="openForm('debt')">+ Add card</button></div>
+  <div class="card info">Track each card separately, including utilization and planned payments.</div>
+  <div id="debtList"></div>
+</section>
+
+<section id="goals" class="screen">
+  <div class="sectionHead"><h2>Savings goals</h2><button onclick="openForm('goal')">+ Add</button></div>
+  <div id="goalList"></div>
+</section>
+
+<section id="settings" class="screen">
+  <div class="sectionHead"><h2>Settings</h2></div>
+  <div class="card">
+    <h2>Money setup</h2>
+    <label>Current bank balance<input id="currentBalance" type="number" step=".01"></label>
+    <label>Default paycheck amount<input id="defaultPay" type="number" step=".01"></label>
+    <label>Paycheck frequency<select id="payFrequency"><option value="weekly">Weekly</option><option value="biweekly">Every 2 weeks</option><option value="semimonthly">Twice a month</option><option value="monthly">Monthly</option></select></label>
+    <button onclick="saveSettings()">Save setup</button>
+  </div>
+  <div class="card">
+    <h2>Privacy</h2>
+    <p>Your budget data is stored locally in this browser. It is not sent to a bank or uploaded by this app.</p>
+    <button class="secondary" onclick="exportData()">Export backup</button>
+    <button class="secondary" onclick="document.getElementById('importFile').click()">Import backup</button>
+    <input id="importFile" type="file" accept=".json" hidden>
+  </div>
+  <div class="card dangerCard">
+    <h2>Reset</h2><p>This deletes all app data from this browser.</p>
+    <button class="danger" onclick="resetAll()">Erase all data</button>
+  </div>
+</section>
 </main>
 
 <nav>
@@ -42,6 +114,10 @@
 <button data-screen="goals">🎯<small>Goals</small></button>
 </nav>
 
-<div id="modal" class="modal hidden"><div class="modalBox"><div class="sectionHead"><h2 id="formTitle">Add</h2><button onclick="closeForm()">✕</button></div><form id="form"></form></div></div>
+<div id="modal" class="modal hidden"><div class="modalBox">
+  <div class="sectionHead"><h2 id="formTitle">Add</h2><button class="secondary" onclick="closeForm()">✕</button></div>
+  <form id="form"></form>
+</div></div>
+
 <script src="app.js"></script>
 </body></html>
