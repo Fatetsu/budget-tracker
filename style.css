@@ -131,3 +131,17 @@ body.dark .empty{color:var(--muted)!important}
   body{min-height:100svh}
   main{min-height:calc(100svh - 145px)}
 }
+
+/* V8 layout cleanup */
+main{min-height:0!important}
+.screen{min-height:0!important;padding-bottom:8px}
+#dashboard{padding-bottom:12px}
+nav{height:auto}
+
+.planner{padding:15px;margin:0 0 10px;border-color:#dbe3ec}
+.assignedBills{margin:8px 0;padding:8px 0;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb}
+.miniRow{display:flex;justify-content:space-between;gap:12px;padding:7px 0;font-size:14px}
+.plannerLeft{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e5e7eb;margin-top:8px;padding-top:12px;font-size:14px}
+.plannerLeft strong{font-size:21px}
+body.dark .planner{border-color:#263750}
+body.dark .assignedBills,body.dark .plannerLeft{border-color:#263750}
