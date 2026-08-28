@@ -38,6 +38,7 @@ function render(){
  $("billTotal").textContent=money(bills);
  $("debtTotal").textContent=money(debt);
  $("safe").textContent=money(safe);
+ $("safe").classList.remove("good","bad","neutral"); $("safe").classList.add(safe>0?"good":safe<0?"bad":"neutral");
  $("safeNote").textContent=next?`${money(bills)} in bills before ${fmt(next.date)}. Future paychecks are excluded.`:"Add your next paycheck to calculate your safe-to-spend amount.";
  $("periodLabel").textContent=next?`Next payday ${fmt(next.date)}`:"Paycheck planner";
  $("monthTotal").textContent=money(data.spending.filter(x=>x.date.startsWith(monthKey())).reduce((a,x)=>a+Number(x.amount),0));
@@ -84,8 +85,18 @@ function resetAll(){if(confirm("Erase all budget data from this browser?")){loca
 function exportData(){const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="budget-tracker-backup.json";a.click();URL.revokeObjectURL(a.href)}
 $("importFile").onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{data=JSON.parse(r.result);save();alert("Backup imported.")}catch{alert("That backup file is not valid.")}};r.readAsText(file)}
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(b.dataset.screen).classList.add("active");document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));b.classList.add("active");if(b.dataset.screen==="settings")loadSettings();scrollTo(0,0)});
-$("settingsBtn").onclick=()=>{document.querySelector('[data-screen="settings"]').click()};
+$("settingsBtn").addEventListener("click",(e)=>{
+  e.preventDefault(); e.stopPropagation();
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  $("settings").classList.add("active");
+  document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+  window.scrollTo({top:0,behavior:"smooth"});
+  loadSettings();
+});
 const savedTheme=localStorage.getItem("budgetTheme")||"light";
 function applyTheme(t){document.body.classList.toggle("dark",t==="dark");$("themeToggle").textContent=t==="dark"?"☀️":"🌙";localStorage.setItem("budgetTheme",t)}
-$("themeToggle").onclick=()=>applyTheme(document.body.classList.contains("dark")?"light":"dark");
+$("themeToggle").addEventListener("click",(e)=>{
+  e.preventDefault(); e.stopPropagation();
+  applyTheme(document.body.classList.contains("dark")?"light":"dark");
+});
 applyTheme(savedTheme);render();document.querySelector('nav button').classList.add('active');
