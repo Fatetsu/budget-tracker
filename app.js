@@ -1,24 +1,90 @@
-const KEY="budgetTrackerV8";
-let data=JSON.parse(localStorage.getItem(KEY)||"null")||{
+const KEY="budgetTrackerV10";
+
+const blankData=()=>({
   settings:{balance:0,defaultPay:0,frequency:"biweekly"},
   paychecks:[],bills:[],spending:[],debt:[],goals:[]
-};
+});
 
-// Import previous versions once if V8 has no data yet.
-if(!localStorage.getItem(KEY)){
-  for(const k of ["budgetTrackerV7","budgetTrackerV6","budgetTrackerV5","budgetTrackerV4","budgetTrackerV3","budgetTrackerV2","budgetTrackerV1"]){
-    const raw=localStorage.getItem(k);
-    if(raw){try{
-      const old=JSON.parse(raw);
-      data={
-        settings:{balance:Number(old.settings?.balance||0),defaultPay:Number(old.settings?.defaultPay||0),frequency:old.settings?.frequency||"biweekly"},
-        paychecks:old.paychecks||[],bills:old.bills||[],spending:old.spending||[],
-        debt:(old.debt||[]).map(x=>({...x,payment:x.payment||0})),goals:old.goals||[]
-      };
-      break;
-    }catch{}}
-  }
+function num(v){return Number(v)||0}
+function normDebt(x){
+  const balance=num(x.balance ?? x.currentBalance ?? x.amount);
+  const starting=num(x.startingBalance ?? x.originalBalance ?? x.initialBalance ?? x.startBalance);
+  return {
+    ...x,
+    name:x.name||"Debt",
+    balance,
+    limit:num(x.limit ?? x.creditLimit),
+    payment:num(x.payment ?? x.plannedPayment ?? x.paycheckPayment),
+    startingBalance:starting>0?starting:balance
+  };
 }
+function normalize(raw){
+  const d=blankData();
+  if(!raw || typeof raw!=="object") return d;
+  d.settings={
+    ...d.settings,
+    ...(raw.settings||{}),
+    balance:num(raw.settings?.balance ?? raw.balance),
+    defaultPay:num(raw.settings?.defaultPay ?? raw.settings?.paycheck ?? raw.defaultPay),
+    frequency:raw.settings?.frequency||"biweekly"
+  };
+  d.paychecks=Array.isArray(raw.paychecks)?raw.paychecks.map(x=>({
+    ...x,amount:num(x.amount),date:x.date||today(),savings:num(x.savings)
+  })):[];
+  d.bills=Array.isArray(raw.bills)?raw.bills.map(x=>({
+    ...x,amount:num(x.amount),date:x.date||today(),frequency:x.frequency||"One-time",paid:!!x.paid
+  })):[];
+  d.spending=Array.isArray(raw.spending)?raw.spending.map(x=>({
+    ...x,amount:num(x.amount),date:x.date||today()
+  })):[];
+  d.debt=Array.isArray(raw.debt)?raw.debt.map(normDebt):[];
+  d.goals=Array.isArray(raw.goals)?raw.goals.map(x=>({
+    ...x,target:num(x.target),saved:num(x.saved)
+  })):[];
+  return d;
+}
+function itemKey(x){
+  return JSON.stringify([
+    x.name||"",x.date||"",num(x.amount),x.frequency||"",
+    num(x.balance),num(x.limit),num(x.payment),num(x.target)
+  ]);
+}
+function mergeUnique(a,b){
+  const out=[...a], seen=new Set(a.map(itemKey));
+  for(const x of b){const k=itemKey(x);if(!seen.has(k)){seen.add(k);out.push(x)}}
+  return out;
+}
+
+// Pull from the current version first, then older versions. This preserves
+// existing data while recovering anything that exists only in an older build.
+let data=blankData();
+const versionKeys=[
+  "budgetTrackerV10","budgetTrackerV9","budgetTrackerV8","budgetTrackerV7",
+  "budgetTrackerV6","budgetTrackerV5","budgetTrackerV4","budgetTrackerV3",
+  "budgetTrackerV2","budgetTrackerV1"
+];
+let found=false;
+for(const k of versionKeys){
+  const raw=localStorage.getItem(k);
+  if(!raw) continue;
+  try{
+    const d=normalize(JSON.parse(raw));
+    if(!found){
+      data=d; found=true;
+    }else{
+      // Newer version remains authoritative for settings; older versions
+      // only fill in records that are missing.
+      data.paychecks=mergeUnique(data.paychecks,d.paychecks);
+      data.bills=mergeUnique(data.bills,d.bills);
+      data.spending=mergeUnique(data.spending,d.spending);
+      data.debt=mergeUnique(data.debt,d.debt);
+      data.goals=mergeUnique(data.goals,d.goals);
+    }
+  }catch(e){}
+}
+if(!found) data=blankData();
+localStorage.setItem(KEY,JSON.stringify(data));
+
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(Number(n)||0);
 const today=()=>new Date().toISOString().slice(0,10);
@@ -120,7 +186,9 @@ function renderLists(){
   });
   list("debtList",data.debt,x=>{
     const i=data.debt.indexOf(x),u=x.limit?Number(x.balance)/Number(x.limit)*100:0;
-    return `<div class="card"><div class="sectionHead"><div><h2>${esc(x.name)}</h2><small>Balance ${money(x.balance)} • Limit ${money(x.limit||0)}</small></div><b>${x.limit?Math.round(u):"—"}%</b></div>${x.limit?`<div class="progress"><i style="width:${Math.min(u,100)}%"></i></div>`:""}<div class="hint">Planned payment each paycheck: ${money(x.payment||0)}</div><div class="right" style="margin-top:10px"><button onclick="editItem('debt',${i})">Edit</button><button class="danger" onclick="del('debt',${i})">Delete</button></div></div>`
+    const start=Math.max(Number(x.startingBalance||0),Number(x.balance||0));
+    const paidPct=start>0?Math.max(0,Math.min(100,(start-Number(x.balance||0))/start*100)):0;
+    return `<div class="card"><div class="sectionHead"><div><h2>${esc(x.name)}</h2><small>Balance remaining ${money(x.balance)} • Starting balance ${money(start)}</small></div><div class="debtPercent"><b>${Math.round(paidPct)}%</b><small>paid off</small></div></div><div class="hint debtUtil"><b>${x.limit?Math.round(u)+"% utilization":"No credit limit entered"}</b> • ${money(Math.max(0,start-Number(x.balance||0)))} paid so far</div><div class="progress payoff"><i style="width:${paidPct}%"></i></div>${x.limit?`<div class="debtStats"><span>Used ${money(x.balance)}</span><span>Available ${money(Math.max(0,Number(x.limit)-Number(x.balance)))}</span></div>`:""}<div class="hint">Planned payment each paycheck: ${money(x.payment||0)}</div><div class="right" style="margin-top:10px"><button onclick="editItem('debt',${i})">Edit</button><button class="danger" onclick="del('debt',${i})">Delete</button></div></div>`
   });
   list("goalList",data.goals,x=>{const i=data.goals.indexOf(x),p=Math.min(100,Number(x.saved)/Number(x.target)*100||0);return `<div class="item"><div style="flex:1"><b>${esc(x.name)}</b><small>${money(x.saved)} of ${money(x.target)} • ${Math.round(p)}%</small><div class="progress"><i style="width:${p}%"></i></div></div><div class="right"><button onclick="editItem('goals',${i})">Edit</button><button class="danger" onclick="del('goals',${i})">Delete</button></div></div>`});
   const recent=data.spending.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
@@ -148,17 +216,18 @@ function openForm(type,index=null){
   if(type==="paycheck"){title=existing?"Edit paycheck":"Add paycheck";fields=`<label>Paycheck amount<input name="amount" type="number" step=".01" value="${existing?.amount??data.settings.defaultPay??""}" required></label><label>Pay date<input name="date" type="date" value="${existing?.date??date}" required></label><label>Note<input name="note" value="${esc(existing?.note??"")}" placeholder="Walmart paycheck"></label><label>Extra savings from this paycheck<input name="savings" type="number" step=".01" value="${existing?.savings??0}"></label><div class="hint">Bills due from this date through the next 13 days will automatically be assigned to this paycheck.</div>`}
   if(type==="bill"){title=existing?"Edit bill":"Add bill";fields=`<label>Name<input name="name" value="${esc(existing?.name??"")}" required></label><label>Amount<input name="amount" type="number" step=".01" value="${existing?.amount??""}" required></label><label>Due date<input name="date" type="date" value="${existing?.date??date}" required></label><label>Frequency<select name="frequency">${["One-time","Weekly","Every 2 weeks","Monthly"].map(v=>`<option ${existing?.frequency===v?"selected":""}>${v}</option>`).join("")}</select></label>`}
   if(type==="spending"){title=existing?"Edit spending":"Add spending";fields=`<label>Name<input name="name" value="${esc(existing?.name??"")}" required></label><label>Amount<input name="amount" type="number" step=".01" value="${existing?.amount??""}" required></label><label>Category<select name="category">${["Food","Gas","Entertainment","Shopping","Subscriptions","Debt","Other"].map(v=>`<option ${existing?.category===v?"selected":""}>${v}</option>`).join("")}</select></label><label>Date<input name="date" type="date" value="${existing?.date??date}" required></label>`}
-  if(type==="debt"){title=existing?"Edit debt card":"Add debt card";fields=`<label>Card name<input name="name" value="${esc(existing?.name??"")}" placeholder="Discover or Capital One" required></label><label>Balance<input name="balance" type="number" step=".01" value="${existing?.balance??""}" required></label><label>Credit limit<input name="limit" type="number" step=".01" value="${existing?.limit??""}"></label><label>Planned payment each paycheck<input name="payment" type="number" step=".01" value="${existing?.payment??""}"></label>`}
+  if(type==="debt"){title=existing?"Edit debt card":"Add debt card";const sb=existing?.startingBalance??existing?.balance??"";fields=`<label>Card name<input name="name" value="${esc(existing?.name??"")}" placeholder="Discover or Capital One" required></label><label>Current balance<input name="balance" type="number" step=".01" value="${existing?.balance??""}" required></label><label>Starting balance<input name="startingBalance" type="number" step=".01" value="${sb}" required></label><label>Credit limit<input name="limit" type="number" step=".01" value="${existing?.limit??""}"></label><label>Planned payment each paycheck<input name="payment" type="number" step=".01" value="${existing?.payment??""}"></label><div class="hint">Paid off % = amount paid down from your starting balance. Utilization is shown separately.</div>`}
   if(type==="goal"){title=existing?"Edit savings goal":"Add savings goal";fields=`<label>Name<input name="name" value="${esc(existing?.name??"")}" required></label><label>Target<input name="target" type="number" step=".01" value="${existing?.target??""}" required></label><label>Saved<input name="saved" type="number" step=".01" value="${existing?.saved??0}"></label>`}
   $("formTitle").textContent=title;
   f.innerHTML=fields+`<div class="formActions"><button type="submit">${existing?"Update":"Save"}</button><button type="button" class="secondary" onclick="closeForm()">Cancel</button></div>`;
   f.onsubmit=e=>{
     e.preventDefault();const o=Object.fromEntries(new FormData(f));
+    ["amount","savings","balance","startingBalance","limit","payment","target","saved"].forEach(k=>{if(k in o)o[k]=num(o[k])});
     if(existing)data[arr][index]={...data[arr][index],...o};else data[arr].push(o);
     closeForm();save()
   }
 }
-function editItem(type,i){openForm(type,i)}
+function editItem(type,i){const map={paychecks:'paycheck',bills:'bill',spending:'spending',debt:'debt',goals:'goal'};openForm(map[type]||type,i)}
 function saveSettings(){
   data.settings.balance=Number($("currentBalance").value||0);
   data.settings.defaultPay=Number($("defaultPay").value||0);

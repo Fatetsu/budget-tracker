@@ -145,3 +145,13 @@ nav{height:auto}
 .plannerLeft strong{font-size:21px}
 body.dark .planner{border-color:#263750}
 body.dark .assignedBills,body.dark .plannerLeft{border-color:#263750}
+
+.debtPercent{text-align:right;display:flex;flex-direction:column;align-items:flex-end}
+.debtPercent b{font-size:22px}.debtPercent small{font-size:11px;color:var(--muted)}
+.debtStats{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);margin-top:7px}
+
+.debtPercent{min-width:78px}
+.debtPercent b{font-size:25px}
+.debtPercent small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.debtUtil{margin:7px 0}
+.progress.payoff i{background:#20b26b}
