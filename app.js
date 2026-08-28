@@ -128,11 +128,11 @@ function render(){
   // reduces what is actually available after bills and planned debt payments.
   const safe=bal-bills-plannedDebt;
 
-  $("balance").textContent=money(bal);
-  $("nextPay").textContent=next?money(next.amount):"$0.00";
+  $("balance").textContent=money(bal); $("balance").classList.remove("good","bad","neutral"); $("balance").classList.add(bal>0?"good":bal<0?"bad":"neutral");
+  $("nextPay").textContent=next?money(next.amount):"$0.00"; $("nextPay").classList.remove("good","bad","neutral"); if(next) $("nextPay").classList.add("good");
   $("nextPayDate").textContent=next?`${fmt(next.date)} • 2-week period`:"No upcoming paycheck";
-  $("billTotal").textContent=money(bills);
-  $("debtTotal").textContent=money(debt);
+  $("billTotal").textContent=money(bills); $("billTotal").classList.toggle("bad",bills>0);
+  $("debtTotal").textContent=money(debt); $("debtTotal").classList.toggle("bad",debt>0);
   $("safe").textContent=money(safe);
   $("safe").classList.remove("good","bad","neutral");
   $("safe").classList.add(safe>0?"good":safe<0?"bad":"neutral");
@@ -162,7 +162,7 @@ function renderPaycheckSummary(){
         <button onclick="editItem('paychecks',${idx})">Edit</button>
       </div>
       ${bills.length?`<div class="assignedBills">${bills.map(b=>`<div class="miniRow"><span>🧾 ${esc(b.name)}</span><b>${money(b.amount)}</b></div>`).join("")}</div>`:`<div class="empty">No bills fall inside this 2-week period.</div>`}
-      <div class="miniRow"><span>Paycheck</span><b>${money(p.amount)}</b></div>
+      <div class="miniRow"><span>Paycheck</span><b class="good">+${money(p.amount)}</b></div>
       ${paycheckCarryover(p)<0?`<div class="miniRow carryover"><span>Negative balance carried in</span><b class="bad">${money(paycheckCarryover(p))}</b></div>`:""}
       <div class="miniRow"><span>Bills</span><b class="bad">−${money(bt)}</b></div>
       ${dt?`<div class="miniRow"><span>Planned debt payments</span><b class="bad">−${money(dt)}</b></div>`:""}
@@ -189,7 +189,7 @@ function renderLists(){
   });
   list("billList",data.bills.slice().sort((a,b)=>a.date.localeCompare(b.date)),b=>{
     const i=data.bills.indexOf(b), p=paychecksSorted().find(p=>b.date>=p.date&&b.date<=paycheckEnd(p));
-    return `<div class="item"><div><b>${esc(b.name)} — ${money(b.amount)}</b><small>Due ${fmt(b.date)} • ${esc(b.frequency||"One-time")}${b.paid?" • Paid":""}</small><small>${p&&!b.paid?`Assigned to paycheck ${fmt(p.date)}`:"Not assigned to a paycheck"}</small></div><div class="right"><button onclick="toggleBill(${i})">${b.paid?"Undo":"Paid ✓"}</button><button onclick="editItem('bills',${i})">Edit</button><button class="danger" onclick="del('bills',${i})">Delete</button></div></div>`
+    return `<div class="item"><div><b>${esc(b.name)} — <span class="bad">${money(b.amount)}</span></b><small>Due ${fmt(b.date)} • ${esc(b.frequency||"One-time")}${b.paid?" • Paid":""}</small><small>${p&&!b.paid?`Assigned to paycheck ${fmt(p.date)}`:"Not assigned to a paycheck"}</small></div><div class="right"><button onclick="toggleBill(${i})">${b.paid?"Undo":"Paid ✓"}</button><button onclick="editItem('bills',${i})">Edit</button><button class="danger" onclick="del('bills',${i})">Delete</button></div></div>`
   });
   list("spendingList",data.spending.slice().sort((a,b)=>b.date.localeCompare(a.date)),x=>{
     const i=data.spending.indexOf(x);return `<div class="item"><div><b>${esc(x.name)} — ${money(x.amount)}</b><small>${esc(x.category)} • ${fmt(x.date)}</small></div><div class="right"><button onclick="editItem('spending',${i})">Edit</button><button class="danger" onclick="del('spending',${i})">Delete</button></div></div>`
@@ -198,11 +198,11 @@ function renderLists(){
     const i=data.debt.indexOf(x),u=x.limit?Number(x.balance)/Number(x.limit)*100:0;
     const start=Math.max(Number(x.startingBalance||0),Number(x.balance||0));
     const paidPct=start>0?Math.max(0,Math.min(100,(start-Number(x.balance||0))/start*100)):0;
-    return `<div class="card"><div class="sectionHead"><div><h2>${esc(x.name)}</h2><small>Balance remaining ${money(x.balance)} • Starting balance ${money(start)}</small></div><div class="debtPercent"><b>${Math.round(paidPct)}%</b><small>paid off</small></div></div><div class="hint debtUtil"><b>${x.limit?Math.round(u)+"% utilization":"No credit limit entered"}</b> • ${money(Math.max(0,start-Number(x.balance||0)))} paid so far</div><div class="progress payoff"><i style="width:${paidPct}%"></i></div>${x.limit?`<div class="debtStats"><span>Used ${money(x.balance)}</span><span>Available ${money(Math.max(0,Number(x.limit)-Number(x.balance)))}</span></div>`:""}<div class="hint">Planned payment each paycheck: ${money(x.payment||0)}</div><div class="right" style="margin-top:10px"><button onclick="editItem('debt',${i})">Edit</button><button class="danger" onclick="del('debt',${i})">Delete</button></div></div>`
+    return `<div class="card"><div class="sectionHead"><div><h2>${esc(x.name)}</h2><small>Balance remaining <span class="bad">${money(x.balance)}</span> • Starting balance ${money(start)}</small></div><div class="debtPercent"><b>${Math.round(paidPct)}%</b><small>paid off</small></div></div><div class="hint debtUtil"><b>${x.limit?Math.round(u)+"% utilization":"No credit limit entered"}</b> • ${money(Math.max(0,start-Number(x.balance||0)))} paid so far</div><div class="progress payoff"><i style="width:${paidPct}%"></i></div>${x.limit?`<div class="debtStats"><span>Used ${money(x.balance)}</span><span>Available ${money(Math.max(0,Number(x.limit)-Number(x.balance)))}</span></div>`:""}<div class="hint">Planned payment each paycheck: ${money(x.payment||0)}</div><div class="right" style="margin-top:10px"><button onclick="editItem('debt',${i})">Edit</button><button class="danger" onclick="del('debt',${i})">Delete</button></div></div>`
   });
   list("goalList",data.goals,x=>{const i=data.goals.indexOf(x),p=Math.min(100,Number(x.saved)/Number(x.target)*100||0);return `<div class="item"><div style="flex:1"><b>${esc(x.name)}</b><small>${money(x.saved)} of ${money(x.target)} • ${Math.round(p)}%</small><div class="progress"><i style="width:${p}%"></i></div></div><div class="right"><button onclick="editItem('goals',${i})">Edit</button><button class="danger" onclick="del('goals',${i})">Delete</button></div></div>`});
   const recent=data.spending.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
-  $("recent").innerHTML=recent.length?recent.map(x=>`<div class="item"><div><b>${esc(x.name)}</b><small>${esc(x.category)} • ${fmt(x.date)}</small></div><b>${money(x.amount)}</b></div>`).join(""):`<div class="empty">No spending yet.</div>`;
+  $("recent").innerHTML=recent.length?recent.map(x=>`<div class="item"><div><b>${esc(x.name)} — <span>${money(x.amount)}</span></b><small>${esc(x.category)} • ${fmt(x.date)}</small></div><b>${money(x.amount)}</b></div>`).join(""):`<div class="empty">No spending yet.</div>`;
 }
 function list(id,arr,fn){$(id).innerHTML=arr.length?arr.map(fn).join(""):`<div class="card empty">Nothing here yet.</div>`}
 function del(type,i){if(confirm("Delete this item?")){data[type].splice(i,1);save()}}
