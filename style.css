@@ -155,3 +155,8 @@ body.dark .assignedBills,body.dark .plannerLeft{border-color:#263750}
 .debtPercent small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
 .debtUtil{margin:7px 0}
 .progress.payoff i{background:#20b26b}
+
+/* V11 negative-balance / availability styling */
+.good{color:#20b26b!important}
+.bad{color:#ef4444!important}
+.neutral{color:var(--text)!important}

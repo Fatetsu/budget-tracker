@@ -117,7 +117,10 @@ function nextPayBills(){const p=nextPay();return p?assignedBillTotal(p):0}
 function render(){
   const bal=currentBalance(), next=nextPay(), bills=nextPayBills();
   const debt=data.debt.reduce((a,x)=>a+Number(x.balance||0),0);
-  const safe=next?Math.max(0,bal-bills):bal;
+  const plannedDebt=next?assignedDebtTotal(next):0;
+  // Current cash can be negative. Never clamp it to zero: negative money
+  // reduces what is actually available after bills and planned debt payments.
+  const safe=bal-bills-plannedDebt;
 
   $("balance").textContent=money(bal);
   $("nextPay").textContent=next?money(next.amount):"$0.00";
@@ -128,8 +131,8 @@ function render(){
   $("safe").classList.remove("good","bad","neutral");
   $("safe").classList.add(safe>0?"good":safe<0?"bad":"neutral");
   $("safeNote").textContent=next
-    ? `${money(bills)} of bills are assigned to the ${fmt(next.date)} paycheck.`
-    : "Add a paycheck to start your two-week plan.";
+    ? `Current balance ${money(bal)} − bills ${money(bills)} − planned debt ${money(plannedDebt)}.`
+    : `Current balance ${money(bal)}. Add a paycheck to start your two-week plan.`;
   $("periodLabel").textContent=next?`Pay period: ${fmt(next.date)} – ${fmt(paycheckEnd(next))}`:"Paycheck planner";
 
   renderPaycheckSummary();
